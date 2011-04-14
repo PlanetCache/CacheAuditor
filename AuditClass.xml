@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="24" zv="Cache for UNIX (IBM AIX for System P5-64) 2010.1.4 (Build 803U)" ts="2011-04-14 15:27:41">
+<Class name="Util.AuditClass">
+<Super>%Persistent</Super>
+<TimeChanged>62195,55564.716039</TimeChanged>
+<TimeCreated>62180,62915.069152</TimeCreated>
+
+<UDLText name="T">
+<Content><![CDATA[
+/*
+		Author: Dan McCracken
+		Date: 4/14/2011
+		
+		Class that will audit any persistent class that extends it, and store the data in Util.AuditStorageClass.
+		
+	*/
+]]></Content>
+</UDLText>
+
+<Method name="%OnBeforeSave">
+<Description><![CDATA[
+This callback method is invoked by the <METHOD>%Save</METHOD> method to 
+provide notification that the object is being saved. It is called after 
+the object's data has been successfully written to disk.
+
+<P><VAR>insert</VAR> will be set to 1 if this object is being saved for the first time.
+
+<P>If this method returns an error then the call to <METHOD>%Save</METHOD> will fail.]]></Description>
+<CodeMode>objectgenerator</CodeMode>
+<FormalSpec>insert:%Boolean</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<ServerOnly>1</ServerOnly>
+<Implementation><![CDATA[
+	// %OnBeforeSave - check to see if the ..%Id() has value.  If it does not, then it's an INSERT. Else its an UPDATE.
+	// If its an UPDATE, audit each field to see if the value changed. Do a lookup off OrefId and embedded SQL..
+	Do %code.WriteLine(" Set saveAudit = 1")
+	
+	Do %code.WriteLine(" Set obj = ##class(Util.AuditClassStorage).%New()")
+	Do %code.WriteLine(" Set obj.OrefId = ..%Id()")
+	Do %code.WriteLine(" Set obj.ClassName = ..%ClassName(1)")
+	Do %code.WriteLine(" Set obj.UserName = $USERNAME")
+	
+	Do %code.WriteLine(" If (insert) {")
+		// Get next ID value for this class, and assign that as the OrefId
+		// Take the largest ID from the audited table and assign the next one to a new add
+	Do %code.WriteLine(" 	Set maxID = """"")
+	Do %code.WriteLine(" 	Set obj.AuditType = ""INSERT""")
+	
+	// On first compile, Util.AuditClass may not exist as a table.
+	// In terminal, do a PROD> set x = ##class(Util.AuditClass).%New() and .%Save(), then recompile.
+	Do %code.WriteLine(" 	&sql(SELECT MAX(ID) INTO :maxID FROM "_%compiledclass.SqlTableName_")")
+	Do %code.WriteLine(" 	Set obj.OrefId = maxID + 1")
+	Do %code.WriteLine(" }")
+	Do %code.WriteLine(" Else {")
+		// Do not save the audit object if it was not modified.
+	Do %code.WriteLine(" 	If (..%ObjectModified()) {	Set obj.AuditType = ""UPDATE"" }")
+	Do %code.WriteLine(" 	Else { Set saveAudit = 0 }")
+	Do %code.WriteLine(" }")
+	
+	Do %code.WriteLine(" If (saveAudit) {")
+	
+	// Rip through each property of the class.. that does not start with a %
+	For i = 1:1:%compiledclass.Properties.Count() {
+        Set prop = %compiledclass.Properties.GetAt(i).Name
+        IF ($EXTRACT(prop) '= "%") {
+	        Do %code.WriteLine(" Set sc = obj.AppendHashPair("""_prop_""",.."_prop_")")
+        }
+    }
+
+	Do %code.WriteLine(" Do obj.%Save()")
+	Do %code.WriteLine(" }")
+	
+	Do %code.WriteLine(" Quit $$$OK")
+	
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="%OnDelete">
+<Description><![CDATA[
+This callback method is invoked by the <METHOD>%Delete</METHOD> method to 
+provide notification that the object specified by <VAR>oid</VAR> is being deleted.
+
+<P>If this method returns an error then the object will not be deleted.]]></Description>
+<ClassMethod>1</ClassMethod>
+<CodeMode>objectgenerator</CodeMode>
+<FormalSpec>oid:%ObjectIdentity</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<ServerOnly>1</ServerOnly>
+<Implementation><![CDATA[
+	// Open the instance of the soon to be deleted object from the oid.
+	Do %code.WriteLine(" Set deleteMe = ..%Open(oid)")
+	
+	Do %code.WriteLine(" Set obj = ##class(Util.AuditClassStorage).%New()")
+	Do %code.WriteLine(" Set obj.OrefId = deleteMe.%Id()")
+	Do %code.WriteLine(" Set obj.ClassName = deleteMe.%ClassName(1)")
+	Do %code.WriteLine(" Set obj.UserName = $USERNAME")
+	
+	Do %code.WriteLine(" Set obj.AuditType = ""DELETE""")
+	
+	// Rip through each property of the class.. that does not start with a %
+	For i = 1:1:%compiledclass.Properties.Count() {
+        Set prop = %compiledclass.Properties.GetAt(i).Name
+        IF ($EXTRACT(prop) '= "%") {
+	        Do %code.WriteLine(" Set sc = obj.AppendHashPair("""_prop_""",deleteMe."_prop_")")
+        }
+    }
+    
+	Do %code.WriteLine(" Do obj.%Save()")
+	
+	Do %code.WriteLine(" Quit $$$OK")
+	
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Library.CacheStorage</Type>
+<DataLocation>^Util.AuditClassD</DataLocation>
+<DefaultData>AuditClassDefaultData</DefaultData>
+<IdLocation>^Util.AuditClassD</IdLocation>
+<IndexLocation>^Util.AuditClassI</IndexLocation>
+<StreamLocation>^Util.AuditClassS</StreamLocation>
+<Data name="AuditClassDefaultData">
+<Structure>listnode</Structure>
+<Subscript/>
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+</Export>
