@@ -48,10 +48,6 @@ the object's data has been successfully written to disk.
 	Do %code.WriteLine(" 	Set maxID = """"")
 	Do %code.WriteLine(" 	Set obj.AuditType = ""INSERT""")
 	
-	// On first compile, Spectrum.Util.AuditClass may not exist as a table.
-	// In terminal, do a PROD> set x = ##class(Spectrum.Util.AuditClass).%New() and .%Save(), then recompile.
-	//Do %code.WriteLine(" 	&sql(SELECT MAX(ID) INTO :maxID FROM "_%compiledclass.SqlTableName_")")
-	
 	// Find the global name the persistent class being extended, so we can do a %code.WriteLine with it to get the next ID subscript
 	// Open dictionary access for class being extended.
 	S class = ##class(%Dictionary.ClassDefinition).%OpenId(%compiledclass.Name)
