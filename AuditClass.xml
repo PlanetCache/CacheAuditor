@@ -1,17 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="24" zv="Cache for UNIX (IBM AIX for System P5-64) 2010.1.4 (Build 803U)" ts="2011-04-15 13:13:59">
-<Class name="Util.AuditClass">
+<Export generator="Cache" version="24" zv="Cache for UNIX (IBM AIX for System P5-64) 2010.1.4 (Build 803U)" ts="2011-06-28 08:58:35">
+<Class name="Spectrum.Util.AuditClass">
 <Super>%Persistent</Super>
-<TimeChanged>62196,47573.46648</TimeChanged>
+<TimeChanged>62270,32163.631311</TimeChanged>
 <TimeCreated>62180,62915.069152</TimeCreated>
 
 <UDLText name="T">
 <Content><![CDATA[
 /*
 		Author: Dan McCracken
-		Date: 4/14/2011
-		
+		Date: 4/14/2011			Moved to Prod: 5/4/2011
+		Version: 1.0
 		Class that will audit any persistent class that extends it, and store the data in Spectrum.Util.AuditStorageClass.
+		
+		Author: Dan McCracken
+		Date: 5/31/2011			Moved to Prod: 6/28/2011
+		Version: 1.1
+		Updated %OnBeforeSave to check and make sure the root global node of a new class has been built..
+		If it hasn't, set the maxID = 0 and add 1 so that it's assigned ID value #1.
+		
 		
 	*/
 ]]></Content>
@@ -60,8 +67,17 @@ the object's data has been successfully written to disk.
 	S storageDefinition = ##class(%Dictionary.StorageDefinition).%OpenId(%compiledclass.Name_"||"_storageName)
 	// Access the DataLocation property, which is the global name being used by the persistent class
 	S globalName = storageDefinition.DataLocation
-	Do %code.WriteLine(" 	Set maxID = "_globalName)	
-		
+	
+	// Check for no root node created yet, and set maxID = 0 if it's not.
+	// This will prevent an undefined error when a class is first created with the auditor extended.
+	// 5/31/2011 -DM
+	Do %code.WriteLine(" If $Data("_globalName_") {")
+	Do %code.WriteLine(" 	Set maxID = "_globalName)
+	Do %code.WriteLine(" }")
+	Do %code.WriteLine(" Else {")
+	Do %code.WriteLine(" Set maxID = 0")
+	Do %code.WriteLine(" }")
+	
 	Do %code.WriteLine(" 	Set obj.OrefId = maxID + 1")
 	Do %code.WriteLine(" }")
 	Do %code.WriteLine(" Else {")
@@ -128,18 +144,83 @@ provide notification that the object specified by <VAR>oid</VAR> is being delete
 ]]></Implementation>
 </Method>
 
+<Method name="TakeAuditSnapshot">
+<Description>
+Initialize the auditStorageClass with current state values.
+Open all records, and save a SNAPSHOT of each row in the AuditStorageClass.</Description>
+<ClassMethod>1</ClassMethod>
+<CodeMode>objectgenerator</CodeMode>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	// %compiledclass.SqlQualifiedNameQ
+	// %compiledclass.Name
+	
+	Do %code.WriteLine(" Set tStatement = ##class(%SQL.Statement).%New()")
+	
+	Do %code.WriteLine(" Set tSQL = 2")
+	Do %code.WriteLine(" Set tSQL(1) = ""SELECT %ID FROM " _ %compiledclass.SqlQualifiedNameQ _ """")
+	Do %code.WriteLine(" Set tSQL(2) = ""Order By %ID ASC""")
+
+	Do %code.WriteLine(" Set sc = tStatement.%Prepare(.tSQL)")
+	
+	Do %code.WriteLine(" Set result = tStatement.%Execute()")
+	
+	// If sqlcode is a negative number, quit.. the statement didn't run right.
+	Do %code.WriteLine(" QUIT:(result.%SQLCODE < 0)")
+	
+	Do %code.WriteLine(" While (result.%Next()) {")
+		Do %code.WriteLine(" Set currentID = result.%Get(""ID"")")
+		
+		Do %code.WriteLine(" Set tObj = ##class(" _ %compiledclass.Name _ ").%OpenId(currentID)")
+		
+		Do %code.WriteLine(" Set auditObj = ##class(Spectrum.Util.AuditClassStorage).%New()")
+		Do %code.WriteLine(" Set auditObj.OrefId = tObj.%Id()")
+		Do %code.WriteLine(" Set auditObj.ClassName = tObj.%ClassName(1)")
+		Do %code.WriteLine(" Set auditObj.UserName = $USERNAME")
+		Do %code.WriteLine(" Set auditObj.AuditType = ""SNAPSHOT""")
+		
+		// Rip through each property of the class.. that does not start with a %
+		For i = 1:1:%compiledclass.Properties.Count() {
+	        Set prop = %compiledclass.Properties.GetAt(i).Name
+	        IF ($EXTRACT(prop) '= "%") {
+		        Do %code.WriteLine(" Set sc = auditObj.AppendHashPair("""_prop_""",tObj."_prop_")")
+	        }
+	    }
+		
+		Do %code.WriteLine(" Do auditObj.%Save()")
+	Do %code.WriteLine(" }")
+	
+	Do %code.WriteLine(" Quit sc")
+]]></Implementation>
+</Method>
+
 <Storage name="Default">
 <Type>%Library.CacheStorage</Type>
-<DataLocation>^Util.AuditClassD</DataLocation>
+<DataLocation>^Spectrum.Util.AuditClassD</DataLocation>
 <DefaultData>AuditClassDefaultData</DefaultData>
-<IdLocation>^Util.AuditClassD</IdLocation>
-<IndexLocation>^Util.AuditClassI</IndexLocation>
-<StreamLocation>^Util.AuditClassS</StreamLocation>
+<IdLocation>^Spectrum.Util.AuditClassD</IdLocation>
+<IndexLocation>^Spectrum.Util.AuditClassI</IndexLocation>
+<StreamLocation>^Spectrum.Util.AuditClassS</StreamLocation>
 <Data name="AuditClassDefaultData">
 <Structure>listnode</Structure>
 <Subscript/>
 <Value name="1">
 <Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>Object</Value>
+</Value>
+<Value name="3">
+<Value>TimeStamp</Value>
+</Value>
+<Value name="4">
+<Value>Dump</Value>
+</Value>
+<Value name="5">
+<Value>ClassName</Value>
+</Value>
+<Value name="6">
+<Value>OrefId</Value>
 </Value>
 </Data>
 </Storage>

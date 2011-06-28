@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="24" zv="Cache for UNIX (IBM AIX for System P5-64) 2010.1.4 (Build 803U)" ts="2011-04-14 15:27:47">
-<Class name="Util.AuditClassStorage">
+<Export generator="Cache" version="24" zv="Cache for UNIX (IBM AIX for System P5-64) 2010.1.4 (Build 803U)" ts="2011-06-28 08:58:47">
+<Class name="Spectrum.Util.AuditClassStorage">
 <Super>%Persistent,%XML.Adaptor</Super>
-<TimeChanged>62195,55625.345407</TimeChanged>
+<TimeChanged>62270,32163.812916</TimeChanged>
 <TimeCreated>62181,56689.707995</TimeCreated>
 
 <UDLText name="T">
 <Content><![CDATA[
 /*
 		Author: Dan McCracken
-		Date: 4/14/2011
+		Date: 4/14/2011			Moved to Prod: 5/4/2011
+		Version: 1.0
 		
 		Persistent storage class for Util.AuditClass entries.
 		
@@ -46,7 +47,7 @@ Stamped in the %OnBeforeSave method of the class.  No need to explicitly set whe
 <Description>
 Type of change that occured.</Description>
 <Type>%String</Type>
-<Parameter name="DISPLAYLIST" value=",INSERT,UPDATE,DELETE"/>
+<Parameter name="DISPLAYLIST" value=",INSERT,UPDATE,DELETE,SNAPSHOT"/>
 </Property>
 
 <Property name="Dump">
@@ -91,11 +92,11 @@ Feed the method a property name and ..Property value, get back a string you can 
 
 <Storage name="Default">
 <Type>%Library.CacheStorage</Type>
-<DataLocation>^Util.AuditClassStorageD</DataLocation>
+<DataLocation>^Spectrum.Util.AuditClassS1287D</DataLocation>
 <DefaultData>AuditClassStorageDefaultData</DefaultData>
-<IdLocation>^Util.AuditClassStorageD</IdLocation>
-<IndexLocation>^Util.AuditClassStorageI</IndexLocation>
-<StreamLocation>^Util.AuditClassStorageS</StreamLocation>
+<IdLocation>^Spectrum.Util.AuditClassS1287D</IdLocation>
+<IndexLocation>^Spectrum.Util.AuditClassS1287I</IndexLocation>
+<StreamLocation>^Spectrum.Util.AuditClassS1287S</StreamLocation>
 <Data name="AuditClassStorageDefaultData">
 <Structure>listnode</Structure>
 <Subscript/>
